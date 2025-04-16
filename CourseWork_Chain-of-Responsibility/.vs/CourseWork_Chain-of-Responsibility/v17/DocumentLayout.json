@@ -1,0 +1,61 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{48313EF9-9A10-4E4B-A6CE-F87A1E39A270}|CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility.vcxproj|C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\FileName.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{48313EF9-9A10-4E4B-A6CE-F87A1E39A270}|CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility.vcxproj|solutionrelative:CourseWork_Chain-of-Responsibility\\FileName.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{48313EF9-9A10-4E4B-A6CE-F87A1E39A270}|CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility.vcxproj|C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\ClassDiagram.cd||{59B0B277-7DDF-4E36-A3ED-02DAC5B9E2FA}|",
+      "RelativeMoniker": "D:0:0:{48313EF9-9A10-4E4B-A6CE-F87A1E39A270}|CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility.vcxproj|solutionrelative:CourseWork_Chain-of-Responsibility\\ClassDiagram.cd||{59B0B277-7DDF-4E36-A3ED-02DAC5B9E2FA}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ClassDiagram.cd",
+              "DocumentMoniker": "C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\ClassDiagram.cd",
+              "RelativeDocumentMoniker": "CourseWork_Chain-of-Responsibility\\ClassDiagram.cd",
+              "ToolTip": "C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\ClassDiagram.cd",
+              "RelativeToolTip": "CourseWork_Chain-of-Responsibility\\ClassDiagram.cd",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000463|",
+              "WhenOpened": "2025-04-16T19:10:22.92Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FileName.cpp",
+              "DocumentMoniker": "C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\FileName.cpp",
+              "RelativeDocumentMoniker": "CourseWork_Chain-of-Responsibility\\FileName.cpp",
+              "ToolTip": "C:\\Users\\vvkud\\Desktop\\DopSelf\\Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\CourseWork_Chain-of-Responsibility\\FileName.cpp",
+              "RelativeToolTip": "CourseWork_Chain-of-Responsibility\\FileName.cpp",
+              "ViewState": "AgIAACYCAAAAAAAAAAAuwDcCAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-04-16T19:09:34.69Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

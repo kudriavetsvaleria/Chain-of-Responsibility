@@ -1,0 +1,35 @@
+ID: 1
+Content: Валідний документ PDF
+Signed: Yes
+Format: pdf
+---
+ID: 2
+Content: 
+Signed: Yes
+Format: txt
+---
+ID: 3
+Content: Документ без підпису
+Signed: No
+Format: txt
+---
+ID: 4
+Content: Документ з невірним форматом
+Signed: Yes
+Format: docx
+---
+ID: 5
+Content: Порожній і не підписаний документ
+Signed: No
+Format: txt
+---
+ID: 6
+Content: Формат не підтримується
+Signed: Yes
+Format: exe
+---
+ID: 7
+Content: Умовно валідний текстовий документ
+Signed: Yes
+Format: txt
+---
