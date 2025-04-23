@@ -1,14 +1,19 @@
-#include <iostream>
+Ôªø#include <iostream>
 #include <string>
 #include <set>
 #include <memory>
 #include <fstream>
 #include <iomanip>
 #include <vector>
+#include <conio.h> 
+#include <algorithm>
+
 
 using namespace std;
 
 void logResult(const string& message);
+bool getValidatedInt(const string& prompt, int& result, int min = INT_MIN, int max = INT_MAX);
+
 
 class Document {
 public:
@@ -23,6 +28,12 @@ public:
 };
 
 int Document::nextId = 1;
+
+struct DocumentComparator {
+	bool operator()(const shared_ptr<Document>& a, const shared_ptr<Document>& b) const {
+		return a->id < b->id;
+	}
+};
 
 class Validator {
 protected:
@@ -75,6 +86,380 @@ public:
 	}
 };
 
+class DocumentStorage {
+private:
+	set<shared_ptr<Document>, DocumentComparator> documents;
+
+public:
+	void printErrorTable(const vector<shared_ptr<Document>>& docs, const string& header) {
+		cout << header << "\n";
+		cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
+		cout << "| ID  | Content                 | –ü—ñ–¥–ø–∏—Å | –§–æ—Ä–º–∞—Ç | –ü—Ä–æ–±–ª–µ–º–∏                      |\n";
+		cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
+
+		for (const auto& doc : docs) {
+			string errors;
+			if (doc->content.empty()) errors += "- –í–º—ñ—Å—Ç; ";
+			if (!doc->isSigned) errors += "- –ü—ñ–¥–ø–∏—Å; ";
+			if (doc->format != "txt" && doc->format != "pdf") errors += "- –§–æ—Ä–º–∞—Ç; ";
+
+			cout << "| " << left << setw(3) << doc->id << " | "
+				<< left << setw(24) << (doc->content.length() > 22 ? doc->content.substr(0, 19) + "..." : doc->content) << "| "
+				<< left << setw(7) << (doc->isSigned ? "–¢–∞–∫" : "–ù—ñ") << "| "
+				<< left << setw(7) << doc->format << "| "
+				<< left << setw(30) << errors << "|\n";
+		}
+
+		cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
+	}
+
+	void showErrorFilterMenu() {
+		cout << "+-------------------------------------------------+\n";
+		cout << "|       –û–±–µ—Ä—ñ—Ç—å —Ç–∏–ø –ø–æ–º–∏–ª–∫–∏ –¥–ª—è —Ñ—ñ–ª—å—Ç—Ä–∞—Ü—ñ—ó:       |\n";
+		cout << "+-------------------------------------------------+\n";
+		cout << "| 1 | –î–æ–∫—É–º–µ–Ω—Ç–∏ –±–µ–∑ –≤–º—ñ—Å—Ç—É                        |\n";
+		cout << "| 2 | –î–æ–∫—É–º–µ–Ω—Ç–∏ –±–µ–∑ –ø—ñ–¥–ø–∏—Å—É                       |\n";
+		cout << "| 3 | –î–æ–∫—É–º–µ–Ω—Ç–∏ –∑ –Ω–µ–¥—ñ–π—Å–Ω–∏–º —Ñ–æ—Ä–º–∞—Ç–æ–º              |\n";
+		cout << "| 4 | –£—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏ –∑ –±—É–¥—å-—è–∫–∏–º–∏ –ø–æ–º–∏–ª–∫–∞–º–∏        |\n";
+		cout << "| 0 | –ü–æ–≤–µ—Ä–Ω—É—Ç–∏—Å—å –¥–æ –≥–æ–ª–æ–≤–Ω–æ–≥–æ –º–µ–Ω—é               |\n";
+		cout << "+-------------------------------------------------+\n";
+	}
+
+	void addDocumentManually() {
+		string content, formatInput;
+		bool signedFlag = false;
+
+		cout << "–í–≤–µ–¥—ñ—Ç—å –≤–º—ñ—Å—Ç –¥–æ–∫—É–º–µ–Ω—Ç–∞. –í–≤–µ–¥—ñ—Ç—å `::end` –Ω–∞ –æ–∫—Ä–µ–º–æ–º—É —Ä—è–¥–∫—É, —â–æ–± –∑–∞–≤–µ—Ä—à–∏—Ç–∏:\n";
+
+		while (true) {
+			string line;
+			getline(cin, line);
+			if (line == "::end") break;
+			content += line + "\n";
+		}
+
+		string flagInput;
+		while (true) {
+			cout << "–î–æ–∫—É–º–µ–Ω—Ç –ø—ñ–¥–ø–∏—Å–∞–Ω–æ? (1 ‚Äì —Ç–∞–∫, 0 ‚Äì –Ω—ñ): ";
+			getline(cin, flagInput);
+
+			if (flagInput == "1" || flagInput == "0") {
+				signedFlag = (flagInput == "1");
+				break;
+			}
+			else {
+				cout << "–ù–µ–∫–æ—Ä–µ–∫—Ç–Ω–µ –∑–Ω–∞—á–µ–Ω–Ω—è. –í–≤–µ–¥—ñ—Ç—å 1 –∞–±–æ 0\n";
+			}
+		}
+
+		cout << "–í–≤–µ–¥—ñ—Ç—å —Ñ–æ—Ä–º–∞—Ç –¥–æ–∫—É–º–µ–Ω—Ç–∞ (txt/pdf): ";
+		getline(cin, formatInput);
+
+		auto doc = make_shared<Document>(content, signedFlag, formatInput);
+		documents.insert(doc);
+
+		cout << "–î–æ–∫—É–º–µ–Ω—Ç —É—Å–ø—ñ—à–Ω–æ –¥–æ–¥–∞–Ω–æ!\n";
+		logResult("–î–æ–¥–∞–Ω–æ –Ω–æ–≤–∏–π –¥–æ–∫—É–º–µ–Ω—Ç –≤—Ä—É—á–Ω—É (ID: " + to_string(doc->id) + ")");
+	}
+
+	void deleteDocumentById(int targetId) {
+		bool found = false;
+		for (auto it = documents.begin(); it != documents.end(); ++it) {
+			if ((*it)->id == targetId) {
+				documents.erase(it);
+				cout << "–î–æ–∫—É–º–µ–Ω—Ç –∑ ID " << targetId << " —É—Å–ø—ñ—à–Ω–æ –≤–∏–¥–∞–ª–µ–Ω–æ!\n";
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			cout << "\n–î–æ–∫—É–º–µ–Ω—Ç –∑ ID " << targetId << " –Ω–µ –∑–Ω–∞–π–¥–µ–Ω–æ.\n";
+		}
+	}
+
+	void editDocumentById() {
+		int editId;
+		while (!getValidatedInt("–í–≤–µ–¥—ñ—Ç—å ID –¥–æ–∫—É–º–µ–Ω—Ç–∞, —è–∫–∏–π —Ö–æ—á–µ—Ç–µ —Ä–µ–¥–∞–≥—É–≤–∞—Ç–∏: ", editId, 1)) {}
+
+		for (auto& doc : documents) {
+			if (doc->id == editId) {
+				// –û–±—Ä–æ–±–∫–∞ –∫–æ–Ω—Ç–µ–Ω—Ç—É –¥–ª—è –≤–∏–≤–æ–¥—É –≤ —Ç–∞–±–ª–∏—Ü—é
+				string displayContent = doc->content;
+				replace(displayContent.begin(), displayContent.end(), '\n', ' ');
+				if (displayContent.length() > 22)
+					displayContent = displayContent.substr(0, 19) + "...";
+
+				// –í–∏–≤—ñ–¥ —ñ–Ω—Ñ–æ—Ä–º–∞—Ü—ñ—ó –ø—Ä–æ –¥–æ–∫—É–º–µ–Ω—Ç
+				cout << "\n+-----+-------------------------+--------+--------+\n";
+				cout << "| ID  | –ó–º—ñ—Å—Ç                   | –ü—ñ–¥–ø–∏—Å | –§–æ—Ä–º–∞—Ç |\n";
+				cout << "+-----+-------------------------+--------+--------+\n";
+				cout << "| " << left << setw(3) << doc->id << " | "
+					<< setw(25) << displayContent << "| "
+					<< setw(7) << (doc->isSigned ? "–¢–∞–∫" : "–ù—ñ") << "| "
+					<< setw(7) << doc->format << " |\n";
+				cout << "+-----+-------------------------+--------+--------+\n";
+
+				cout << "+----+--------------------------------------------+\n";
+				cout << "|            –û–±–µ—Ä—ñ—Ç—å –ø—É–Ω–∫—Ç —Ä–µ–¥–∞–≥—É–≤–∞–Ω–Ω—è            |\n";
+				cout << "+----+--------------------------------------------+\n";
+				cout << "| 1  | –ó–º—ñ–Ω–∏—Ç–∏ –≤–º—ñ—Å—Ç –¥–æ–∫—É–º–µ–Ω—Ç–∞                    |\n";
+				cout << "| 2  | –ó–º—ñ–Ω–∏—Ç–∏ —Ñ–æ—Ä–º–∞—Ç (txt/pdf)                   |\n";
+				cout << "| 3  | –ó–º—ñ–Ω–∏—Ç–∏ —Å—Ç–∞—Ç—É—Å –ø—ñ–¥–ø–∏—Å—É                     |\n";
+				cout << "+----+--------------------------------------------+\n";
+
+				int choice;
+				while (!getValidatedInt("–í–∞—à –≤–∏–±—ñ—Ä: ", choice, 1, 3)) {}
+
+				switch (choice) {
+				case 1: {
+					cout << "–í–≤–µ–¥—ñ—Ç—å –Ω–æ–≤–∏–π –≤–º—ñ—Å—Ç –¥–æ–∫—É–º–µ–Ω—Ç–∞. –í–≤–µ–¥—ñ—Ç—å `::end` –Ω–∞ –æ–∫—Ä–µ–º–æ–º—É —Ä—è–¥–∫—É, —â–æ–± –∑–∞–≤–µ—Ä—à–∏—Ç–∏:\n";
+					string newContent, line;
+					cin.ignore();
+					while (true) {
+						getline(cin, line);
+						if (line == "::end") break;
+						newContent += line + "\n";
+					}
+					doc->content = newContent;
+					break;
+				}
+				case 2: {
+					cout << "–ù–æ–≤–∏–π —Ñ–æ—Ä–º–∞—Ç (txt/pdf): ";
+					string newFormat;
+					cin.ignore();
+					getline(cin, newFormat);
+					doc->format = newFormat;
+					break;
+				}
+				case 3: {
+					int flag;
+					while (!getValidatedInt("–ù–æ–≤–∏–π —Å—Ç–∞—Ç—É—Å (1 - –ø—ñ–¥–ø–∏—Å–∞–Ω–æ, 0 - –Ω–µ –ø—ñ–¥–ø–∏—Å–∞–Ω–æ): ", flag, 0, 1)) {}
+					doc->isSigned = (flag == 1);
+					break;
+				}
+				}
+
+				cout << "–î–æ–∫—É–º–µ–Ω—Ç –æ–Ω–æ–≤–ª–µ–Ω–æ!\n";
+				logResult("–î–æ–∫—É–º–µ–Ω—Ç –∑ ID " + to_string(editId) + " –≤—ñ–¥—Ä–µ–¥–∞–≥–æ–≤–∞–Ω–æ.");
+				return;
+			}
+		}
+
+		cout << "–î–æ–∫—É–º–µ–Ω—Ç –∑ —Ç–∞–∫–∏–º ID –Ω–µ –∑–Ω–∞–π–¥–µ–Ω–æ\n";
+	}
+
+	void printAllDocuments() {
+		if (documents.empty()) {
+			cout << "–°–ø–∏—Å–æ–∫ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤ –ø–æ—Ä–æ–∂–Ω—ñ–π!\n";
+			return;
+		}
+
+		cout << "–°–ø–∏—Å–æ–∫ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤";
+		cout << "\n+----+--------------------------+--------+--------+\n";
+		cout << "| ID |          –ó–º—ñ—Å—Ç           | –ü—ñ–¥–ø–∏—Å | –§–æ—Ä–º–∞—Ç |\n";
+		cout << "+----+--------------------------+--------+--------+\n";
+
+		for (const auto& doc : documents) {
+			// –ö–æ–ø—ñ—è –∫–æ–Ω—Ç–µ–Ω—Ç—É –¥–ª—è –≤—ñ–¥–æ–±—Ä–∞–∂–µ–Ω–Ω—è
+			string displayContent = doc->content;
+			// –ó–∞–º—ñ–Ω–∞ –ø–µ—Ä–µ–Ω–æ—Å—ñ–≤ —Ä—è–¥–∫—ñ–≤ –Ω–∞ –ø—Ä–æ–±—ñ–ª–∏
+			replace(displayContent.begin(), displayContent.end(), '\n', ' ');
+			// –£—Å—ñ—á–µ–Ω–Ω—è –¥–æ–≤–≥–∏—Ö —Ä—è–¥–∫—ñ–≤ –∑ —Ç—Ä–∏–∫—Ä–∞–ø–∫–æ—é
+			if (displayContent.length() > 25) {
+				displayContent = displayContent.substr(0, 20) + "...";
+			}
+
+			cout << "| " << left << setw(2) << doc->id << " | "
+				<< left << setw(25) << displayContent << "| "
+				<< left << setw(6) << (doc->isSigned ? "Yes" : "No") << " | "
+				<< left << setw(6) << doc->format << " |\n";
+		}
+
+		cout << "+----+--------------------------+--------+--------+\n";
+
+		string countLine = "| –í—Å—å–æ–≥–æ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤: " + to_string(documents.size());
+		int totalLength = 49;
+		int padding = totalLength - static_cast<int>(countLine.length());
+		cout << countLine << string(padding, ' ') << " |\n";
+
+		cout << "+-------------------------------------------------+\n";
+	}
+
+	void verifyAllDocuments() {
+		cout << "–ü–µ—Ä–µ–≤—ñ—Ä–∫–∞ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤";
+		cout << "\n+-----+-------------------------+--------+--------+--------------------------------+\n";
+		cout << "| ID  | Content                 | –ü—ñ–¥–ø–∏—Å | –§–æ—Ä–º–∞—Ç | –°—Ç–∞—Ç—É—Å –ø–µ—Ä–µ–≤—ñ—Ä–∫–∏               |\n";
+		cout << "+-----+-------------------------+--------+--------+--------------------------------+\n";
+
+		for (const auto& doc : documents) {
+			bool valid = true;
+			string status;
+
+			if (doc->format != "txt" && doc->format != "pdf") {
+				status += "- –§–æ—Ä–º–∞—Ç; ";
+				valid = false;
+			}
+			if (doc->content.empty()) {
+				status += "- –í–º—ñ—Å—Ç; ";
+				valid = false;
+			}
+			if (!doc->isSigned) {
+				status += "- –ü—ñ–¥–ø–∏—Å; ";
+				valid = false;
+			}
+			if (valid) {
+				status = "+ –£—Å–ø—ñ—à–Ω–æ –ø–µ—Ä–µ–≤—ñ—Ä–µ–Ω–æ";
+			}
+
+			// üîß –û–±—Ä–æ–±–∫–∞ –±–∞–≥–∞—Ç–æ—Ä—è–¥–∫–æ–≤–æ–≥–æ –∫–æ–Ω—Ç–µ–Ω—Ç—É
+			string displayContent = doc->content;
+			replace(displayContent.begin(), displayContent.end(), '\n', ' ');
+			if (displayContent.length() > 23) {
+				displayContent = displayContent.substr(0, 20) + "...";
+			}
+
+			cout << "| " << left << setw(3) << doc->id << " | "
+				<< left << setw(24) << displayContent << "| "
+				<< left << setw(7) << (doc->isSigned ? "–¢–∞–∫" : "–ù—ñ") << "| "
+				<< left << setw(7) << doc->format << "| "
+				<< left << setw(31) << status << "|\n";
+		}
+
+		cout << "+-----+-------------------------+--------+--------+--------------------------------+\n";
+	}
+
+	void clearAllDocuments() {
+		char confirm;
+		cout << "–£–≤–∞–≥–∞! –í–∏ –≤–ø–µ–≤–Ω–µ–Ω—ñ, —â–æ —Ö–æ—á–µ—Ç–µ –≤–∏–¥–∞–ª–∏—Ç–∏ –≤—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏? (y/n): ";
+		cin >> confirm;
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+		if (confirm == 'y' || confirm == 'Y') {
+			documents.clear();
+			cout << "–£—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏ —É—Å–ø—ñ—à–Ω–æ –≤–∏–¥–∞–ª–µ–Ω–æ.\n";
+			logResult("–ö–æ—Ä–∏—Å—Ç—É–≤–∞—á –≤–∏–¥–∞–ª–∏–≤ —É—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏.");
+		}
+		else {
+			cout << "–û—á–∏—â–µ–Ω–Ω—è —Å–∫–∞—Å–æ–≤–∞–Ω–æ.\n";
+		}
+	}
+
+	void saveDocumentsToFile(const string& filename = "documents.txt") {
+		ofstream out(filename);
+		if (!out.is_open()) {
+			cerr << "–ù–µ –≤–¥–∞–ª–æ—Å—è –≤—ñ–¥–∫—Ä–∏—Ç–∏ —Ñ–∞–π–ª –¥–ª—è –∑–∞–ø–∏—Å—É.\n";
+			return;
+		}
+
+		for (const auto& doc : documents) {
+			out << "ID: " << doc->id << "\n";
+			out << "Content: " << doc->content << "\n";
+			out << "Signed: " << (doc->isSigned ? "Yes" : "No") << "\n";
+			out << "Format: " << doc->format << "\n";
+			out << "---\n";
+		}
+
+		out.close();
+	}
+
+	void findInvalidDocumentsByError(const string& errorType) {
+		for (const auto& doc : documents) {
+			if (errorType == "empty_content" && doc->content.empty()) {
+				cout << "–ó–Ω–∞–π–¥–µ–Ω–æ –¥–æ–∫—É–º–µ–Ω—Ç –±–µ–∑ –≤–º—ñ—Å—Ç—É. (ID: " << doc->id << ")\n";
+			}
+			else if (errorType == "not_signed" && !doc->isSigned) {
+				cout << "–ó–Ω–∞–π–¥–µ–Ω–æ –Ω–µ –ø—ñ–¥–ø–∏—Å–∞–Ω–∏–π –¥–æ–∫—É–º–µ–Ω—Ç. (ID: " << doc->id << ")\n";
+			}
+			else if (errorType == "invalid_format" && doc->format != "txt" && doc->format != "pdf") {
+				cout << "–ó–Ω–∞–π–¥–µ–Ω–æ –¥–æ–∫—É–º–µ–Ω—Ç –∑ –Ω–µ–¥—ñ–π—Å–Ω–∏–º —Ñ–æ—Ä–º–∞—Ç–æ–º: " << doc->format << " (ID: " << doc->id << ")\n";
+			}
+		}
+	}
+
+
+	void loadDocumentsFromFile(const string& filename = "documents.txt") {
+		ifstream in(filename);
+		if (!in.is_open()) {
+			cerr << "–§–∞–π–ª –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤ –Ω–µ –∑–Ω–∞–π–¥–µ–Ω–æ.\n";
+			return;
+		}
+
+		string line;
+		string content, format;
+		bool isSigned = false;
+		int id = 0;
+		int maxId = 0;
+
+		while (getline(in, line)) {
+			if (line.rfind("ID: ", 0) == 0) {
+				id = stoi(line.substr(4));
+				if (id > maxId) maxId = id;
+			}
+			else if (line.rfind("Content: ", 0) == 0) {
+				content = line.substr(9);
+			}
+			else if (line.rfind("Signed: ", 0) == 0) {
+				isSigned = (line.substr(8) == "Yes");
+			}
+			else if (line.rfind("Format: ", 0) == 0) {
+				format = line.substr(8);
+			}
+			else if (line == "---") {
+				auto doc = make_shared<Document>(content, isSigned, format);
+				doc->id = id;
+				documents.insert(doc);
+			}
+		}
+
+		Document::nextId = maxId + 1;
+		in.close();
+	}
+
+
+
+	void handleErrorSearch(int option) {
+		vector<shared_ptr<Document>> result;
+
+		for (const auto& doc : documents) {
+			bool invalidContent = doc->content.empty();
+			bool invalidSign = !doc->isSigned;
+			bool invalidFormat = (doc->format != "txt" && doc->format != "pdf");
+
+			switch (option) {
+			case 1:
+				if (invalidContent) result.push_back(doc);
+				break;
+			case 2:
+				if (invalidSign) result.push_back(doc);
+				break;
+			case 3:
+				if (invalidFormat) result.push_back(doc);
+				break;
+			case 4:
+				if (invalidContent || invalidSign || invalidFormat) result.push_back(doc);
+				break;
+			default:
+				cout << "–ù–µ–≤—ñ—Ä–Ω–∏–π –≤–∏–±—ñ—Ä —Ñ—ñ–ª—å—Ç—Ä–∞!\n";
+				return;
+			}
+		}
+
+		if (result.empty()) {
+			cout << "–î–æ–∫—É–º–µ–Ω—Ç—ñ–≤ –∑–∞ –≤–∏–±—Ä–∞–Ω–∏–º –∫—Ä–∏—Ç–µ—Ä—ñ—î–º –Ω–µ –∑–Ω–∞–π–¥–µ–Ω–æ\n";
+		}
+		else {
+			string header = "–î–æ–∫—É–º–µ–Ω—Ç–∏ –∑ –ø–æ–º–∏–ª–∫–∞–º–∏: ";
+			if (option == 1) header += "–í–º—ñ—Å—Ç";
+			else if (option == 2) header += "–ü—ñ–¥–ø–∏—Å";
+			else if (option == 3) header += "–§–æ—Ä–º–∞—Ç";
+			else header += "–í—Å—ñ";
+			printErrorTable(result, header);
+		}
+	}
+
+
+};
+
 string readFromFile(const string& filename) {
 	ifstream file(filename);
 	if (!file.is_open()) {
@@ -92,13 +477,7 @@ void logResult(const string& message) {
 	logFile.close();
 }
 
-struct DocumentComparator {
-	bool operator()(const shared_ptr<Document>& a, const shared_ptr<Document>& b) const {
-		return a->id < b->id;
-	}
-};
 
-set<shared_ptr<Document>, DocumentComparator> documents;
 
 bool isValidFormat(const string& format) {
 	return format == "txt" || format == "pdf";
@@ -108,7 +487,7 @@ bool isValidSignedFlag(const string& input) {
 	return input == "0" || input == "1";
 }
 
-bool getValidatedInt(const string& prompt, int& result, int min = INT_MIN, int max = INT_MAX) {
+bool getValidatedInt(const string& prompt, int& result, int min, int max) {
 	cout << prompt;
 	string input;
 	getline(cin, input);
@@ -119,363 +498,27 @@ bool getValidatedInt(const string& prompt, int& result, int min = INT_MIN, int m
 		return true;
 	}
 	catch (...) {
-		cout << "ÕÂÍÓÂÍÚÌÂ ÁÌ‡˜ÂÌÌˇ. —ÔÓ·ÛÈÚÂ ˘Â ‡Á!\n";
+		cout << "–ù–µ–∫–æ—Ä–µ–∫—Ç–Ω–µ –∑–Ω–∞—á–µ–Ω–Ω—è. –°–ø—Ä–æ–±—É–π—Ç–µ —â–µ —Ä–∞–∑!\n";
 		return false;
 	}
 }
 
 
-void findInvalidDocumentsByError(const string& errorType) {
-	for (const auto& doc : documents) {
-		if (errorType == "empty_content" && doc->content.empty()) {
-			cout << "«Ì‡È‰ÂÌÓ ‰ÓÍÛÏÂÌÚ ·ÂÁ ‚Ï≥ÒÚÛ. (ID: " << doc->id << ")\n";
-		}
-		else if (errorType == "not_signed" && !doc->isSigned) {
-			cout << "«Ì‡È‰ÂÌÓ ÌÂ Ô≥‰ÔËÒ‡ÌËÈ ‰ÓÍÛÏÂÌÚ. (ID: " << doc->id << ")\n";
-		}
-		else if (errorType == "invalid_format" && doc->format != "txt" && doc->format != "pdf") {
-			cout << "«Ì‡È‰ÂÌÓ ‰ÓÍÛÏÂÌÚ Á ÌÂ‰≥ÈÒÌËÏ ÙÓÏ‡ÚÓÏ: " << doc->format << " (ID: " << doc->id << ")\n";
-		}
-	}
-}
-
-
-
-void printAllDocuments() {
-	if (documents.empty()) {
-		cout << "—ÔËÒÓÍ ‰ÓÍÛÏÂÌÚ≥‚ ÔÓÓÊÌ≥È!\n";
-		return;
-	}
-	cout << "—ÔËÒÓÍ ‰ÓÍÛÏÂÌÚ≥‚";
-	cout << "\n+----+--------------------------+--------+--------+\n";
-	cout << "| ID |          «Ï≥ÒÚ           | œ≥‰ÔËÒ | ‘ÓÏ‡Ú |\n";
-	cout << "+----+--------------------------+--------+--------+\n";
-
-	for (const auto& doc : documents) {
-		cout << "| " << left << setw(2) << doc->id << " | "
-			<< left << setw(25) << (doc->content.length() > 25 ? doc->content.substr(0, 20) + "..." : doc->content) << "| "
-			<< left << setw(6) << (doc->isSigned ? "Yes" : "No") << " | "
-			<< left << setw(6) << doc->format << " |\n";
-	}
-
-
-	cout << "+----+--------------------------+--------+--------+\n";
-
-	string countLine = "| ¬Ò¸Ó„Ó ‰ÓÍÛÏÂÌÚ≥‚: " + to_string(documents.size());
-	int totalLength = 49;
-	int padding = totalLength - static_cast<int>(countLine.length());
-	cout << countLine << string(padding, ' ') << " |\n";
-
-	cout << "+-------------------------------------------------+\n";
-
-}
-
-
-void deleteDocumentById(int targetId) {
-	bool found = false;
-	for (auto it = documents.begin(); it != documents.end(); ++it) {
-		if ((*it)->id == targetId) {
-			documents.erase(it);
-			cout << "ƒÓÍÛÏÂÌÚ Á ID " << targetId << " ÛÒÔ≥¯ÌÓ ‚Ë‰‡ÎÂÌÓ!\n";
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		cout << "\nƒÓÍÛÏÂÌÚ Á ID " << targetId << " ÌÂ ÁÌ‡È‰ÂÌÓ.\n";
-	}
-}
-
-
-void saveDocumentsToFile(const string& filename = "documents.txt") {
-	ofstream out(filename);
-	if (!out.is_open()) {
-		cerr << "ÕÂ ‚‰‡ÎÓÒˇ ‚≥‰ÍËÚË Ù‡ÈÎ ‰Îˇ Á‡ÔËÒÛ.\n";
-		return;
-	}
-
-	for (const auto& doc : documents) {
-		out << "ID: " << doc->id << "\n";
-		out << "Content: " << doc->content << "\n";
-		out << "Signed: " << (doc->isSigned ? "Yes" : "No") << "\n";
-		out << "Format: " << doc->format << "\n";
-		out << "---\n";
-	}
-
-	out.close();
-}
-
-
-
-
-void loadDocumentsFromFile(const string& filename = "documents.txt") {
-	ifstream in(filename);
-	if (!in.is_open()) {
-		cerr << "‘‡ÈÎ ‰ÓÍÛÏÂÌÚ≥‚ ÌÂ ÁÌ‡È‰ÂÌÓ.\n";
-		return;
-	}
-
-	string line;
-	string content, format;
-	bool isSigned = false;
-	int id = 0;
-	int maxId = 0;
-
-	while (getline(in, line)) {
-		if (line.rfind("ID: ", 0) == 0) {
-			id = stoi(line.substr(4));
-			if (id > maxId) maxId = id;
-		}
-		else if (line.rfind("Content: ", 0) == 0) {
-			content = line.substr(9);
-		}
-		else if (line.rfind("Signed: ", 0) == 0) {
-			isSigned = (line.substr(8) == "Yes");
-		}
-		else if (line.rfind("Format: ", 0) == 0) {
-			format = line.substr(8);
-		}
-		else if (line == "---") {
-			auto doc = make_shared<Document>(content, isSigned, format);
-			doc->id = id;
-			documents.insert(doc);
-		}
-	}
-
-	Document::nextId = maxId + 1;
-	in.close();
-}
-
-void clearAllDocuments() {
-	char confirm;
-	cout << "”‚‡„‡! ¬Ë ‚ÔÂ‚ÌÂÌ≥, ˘Ó ıÓ˜ÂÚÂ ‚Ë‰‡ÎËÚË ‚Ò≥ ‰ÓÍÛÏÂÌÚË? (y/n): ";
-	cin >> confirm;
-	cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-	if (confirm == 'y' || confirm == 'Y') {
-		documents.clear();
-		cout << "”Ò≥ ‰ÓÍÛÏÂÌÚË ÛÒÔ≥¯ÌÓ ‚Ë‰‡ÎÂÌÓ.\n";
-		logResult(" ÓËÒÚÛ‚‡˜ ‚Ë‰‡ÎË‚ ÛÒ≥ ‰ÓÍÛÏÂÌÚË.");
-	}
-	else {
-		cout << "Œ˜Ë˘ÂÌÌˇ ÒÍ‡ÒÓ‚‡ÌÓ.\n";
-	}
-}
-
-void editDocumentById() {
-	int editId;
-	while (!getValidatedInt("¬‚Â‰≥Ú¸ ID ‰ÓÍÛÏÂÌÚ‡, ˇÍËÈ ıÓ˜ÂÚÂ Â‰‡„Û‚‡ÚË: ", editId, 1)) {}
-
-	for (auto& doc : documents) {
-		if (doc->id == editId) {
-			cout << "\n+----+--------------------------+--------+--------+\n";
-			cout << "| ID | «Ï≥ÒÚ                    | œ≥‰ÔËÒ | ‘ÓÏ‡Ú |\n";
-			cout << "+----+--------------------------+--------+--------+\n";
-			cout << "| " << left << setw(2) << doc->id << " | "
-				<< left << setw(24) << (doc->content.length() > 22 ? doc->content.substr(0, 19) + "..." : doc->content) << " | "
-				<< left << setw(6) << (doc->isSigned ? "“‡Í" : "Õ≥") << " | "
-				<< left << setw(6) << doc->format << " |\n";
-			cout << "+----+--------------------------------------------+\n";
-			cout << "|            Œ·Â≥Ú¸ ÔÛÌÍÚ Â‰‡„Û‚‡ÌÌˇ            |\n";
-			cout << "+----+--------------------------------------------+\n";
-			cout << "| 1  | «Ï≥ÌËÚË ‚Ï≥ÒÚ ‰ÓÍÛÏÂÌÚ‡                    |\n";
-			cout << "| 2  | «Ï≥ÌËÚË ÙÓÏ‡Ú (txt/pdf)                   |\n";
-			cout << "| 3  | «Ï≥ÌËÚË ÒÚ‡ÚÛÒ Ô≥‰ÔËÒÛ                     |\n";
-			cout << "+----+--------------------------------------------+\n";
-
-			int choice;
-			while (!getValidatedInt("¬‡¯ ‚Ë·≥: ", choice, 1, 3)) {}
-
-			switch (choice) {
-			case 1: {
-				cout << "ÕÓ‚ËÈ ‚Ï≥ÒÚ: ";
-				cin.ignore();
-				getline(cin, doc->content);
-				break;
-			}
-			case 2: {
-				cout << "ÕÓ‚ËÈ ÙÓÏ‡Ú (txt/pdf): ";
-				cin.ignore();
-				getline(cin, doc->format);
-				break;
-			}
-			case 3: {
-				int flag;
-				while (!getValidatedInt("ÕÓ‚ËÈ ÒÚ‡ÚÛÒ (1 - Ô≥‰ÔËÒ‡ÌÓ, 0 - ÌÂ Ô≥‰ÔËÒ‡ÌÓ): ", flag, 0, 1)) {}
-				doc->isSigned = (flag == 1);
-				break;
-			}
-			}
-
-			cout << "ƒÓÍÛÏÂÌÚ ÓÌÓ‚ÎÂÌÓ!\n";
-			logResult("ƒÓÍÛÏÂÌÚ Á ID " + to_string(editId) + " ‚≥‰Â‰‡„Ó‚‡ÌÓ.");
-			return;
-		}
-	}
-
-	cout << "ƒÓÍÛÏÂÌÚ Á Ú‡ÍËÏ ID ÌÂ ÁÌ‡È‰ÂÌÓ\n";
-}
-
-
-void verifyAllDocuments() {
-	cout << "œÂÂ‚≥Í‡ ‰ÓÍÛÏÂÌÚ≥‚";
-	cout << "\n+-----+-------------------------+--------+--------+--------------------------------+\n";
-	cout << "| ID  | Content                 | œ≥‰ÔËÒ | ‘ÓÏ‡Ú | —Ú‡ÚÛÒ ÔÂÂ‚≥ÍË               |\n";
-	cout << "+-----+-------------------------+--------+--------+--------------------------------+\n";
-
-	for (const auto& doc : documents) {
-		bool valid = true;
-		string status;
-
-		if (doc->format != "txt" && doc->format != "pdf") {
-			status += "- ‘ÓÏ‡Ú; ";
-			valid = false;
-		}
-		if (doc->content.empty()) {
-			status += "- ¬Ï≥ÒÚ; ";
-			valid = false;
-		}
-		if (!doc->isSigned) {
-			status += "- œ≥‰ÔËÒ; ";
-			valid = false;
-		}
-
-		if (valid) {
-			status = "+ ”ÒÔ≥¯ÌÓ ÔÂÂ‚≥ÂÌÓ";
-		}
-
-		cout << "| " << left << setw(3) << doc->id << " | "
-			<< left << setw(24) << (doc->content.length() > 22 ? doc->content.substr(0, 19) + "..." : doc->content) << "| "
-			<< left << setw(7) << (doc->isSigned ? "“‡Í" : "Õ≥") << "| "
-			<< left << setw(7) << doc->format << "| "
-			<< left << setw(31) << status << "|\n";
-	}
-
-	cout << "+-----+-------------------------+--------+--------+--------------------------------+\n";
-}
-
-void printErrorTable(const vector<shared_ptr<Document>>& docs, const string& header) {
-	cout << header << "\n";
-	cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
-	cout << "| ID  | Content                 | œ≥‰ÔËÒ | ‘ÓÏ‡Ú | œÓ·ÎÂÏË                      |\n";
-	cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
-
-	for (const auto& doc : docs) {
-		string errors;
-		if (doc->content.empty()) errors += "- ¬Ï≥ÒÚ; ";
-		if (!doc->isSigned) errors += "- œ≥‰ÔËÒ; ";
-		if (doc->format != "txt" && doc->format != "pdf") errors += "- ‘ÓÏ‡Ú; ";
-
-		cout << "| " << left << setw(3) << doc->id << " | "
-			<< left << setw(24) << (doc->content.length() > 22 ? doc->content.substr(0, 19) + "..." : doc->content) << "| "
-			<< left << setw(7) << (doc->isSigned ? "“‡Í" : "Õ≥") << "| "
-			<< left << setw(7) << doc->format << "| "
-			<< left << setw(30) << errors << "|\n";
-	}
-
-	cout << "+-----+-------------------------+--------+--------+-------------------------------+\n";
-}
-
-void addDocumentManually() {
-	string content, formatInput;
-	bool signedFlag = false;
-
-	cout << "¬‚Â‰≥Ú¸ ‚Ï≥ÒÚ ‰ÓÍÛÏÂÌÚ‡: ";
-	getline(cin, content);
-
-	string flagInput;
-	while (true) {
-		cout << "ƒÓÍÛÏÂÌÚ Ô≥‰ÔËÒ‡ÌÓ? (1 ñ Ú‡Í, 0 ñ Ì≥): ";
-		getline(cin, flagInput);
-
-		if (flagInput == "1" || flagInput == "0") {
-			signedFlag = (flagInput == "1");
-			break;
-		}
-		else {
-			cout << "ÕÂÍÓÂÍÚÌÂ ÁÌ‡˜ÂÌÌˇ. ¬‚Â‰≥Ú¸ 1 ‡·Ó 0\n";
-		}
-	}
-
-	cout << "¬‚Â‰≥Ú¸ ÙÓÏ‡Ú ‰ÓÍÛÏÂÌÚ‡ (txt/pdf): ";
-	getline(cin, formatInput);
-
-	auto doc = make_shared<Document>(content, signedFlag, formatInput);
-	documents.insert(doc);
-
-	cout << "ƒÓÍÛÏÂÌÚ ÛÒÔ≥¯ÌÓ ‰Ó‰‡ÌÓ!\n";
-	logResult("ƒÓ‰‡ÌÓ ÌÓ‚ËÈ ‰ÓÍÛÏÂÌÚ ‚Û˜ÌÛ (ID: " + to_string(doc->id) + ")");
-}
-
-
-void handleErrorSearch(int option) {
-	vector<shared_ptr<Document>> result;
-
-	for (const auto& doc : documents) {
-		bool invalidContent = doc->content.empty();
-		bool invalidSign = !doc->isSigned;
-		bool invalidFormat = (doc->format != "txt" && doc->format != "pdf");
-
-		switch (option) {
-		case 1:
-			if (invalidContent) result.push_back(doc);
-			break;
-		case 2:
-			if (invalidSign) result.push_back(doc);
-			break;
-		case 3:
-			if (invalidFormat) result.push_back(doc);
-			break;
-		case 4:
-			if (invalidContent || invalidSign || invalidFormat) result.push_back(doc);
-			break;
-		default:
-			cout << "ÕÂ‚≥ÌËÈ ‚Ë·≥ Ù≥Î¸Ú‡!\n";
-			return;
-		}
-	}
-
-	if (result.empty()) {
-		cout << "ƒÓÍÛÏÂÌÚ≥‚ Á‡ ‚Ë·‡ÌËÏ ÍËÚÂ≥∫Ï ÌÂ ÁÌ‡È‰ÂÌÓ\n";
-	}
-	else {
-		string header = "ƒÓÍÛÏÂÌÚË Á ÔÓÏËÎÍ‡ÏË: ";
-		if (option == 1) header += "¬Ï≥ÒÚ";
-		else if (option == 2) header += "œ≥‰ÔËÒ";
-		else if (option == 3) header += "‘ÓÏ‡Ú";
-		else header += "¬Ò≥";
-		printErrorTable(result, header);
-	}
-}
-
-
-void showErrorFilterMenu() {
-	cout << "+-------------------------------------------------+\n";
-	cout << "|       Œ·Â≥Ú¸ ÚËÔ ÔÓÏËÎÍË ‰Îˇ Ù≥Î¸Ú‡ˆ≥ø:       |\n";
-	cout << "+-------------------------------------------------+\n";
-	cout << "| 1 | ƒÓÍÛÏÂÌÚË ·ÂÁ ‚Ï≥ÒÚÛ                        |\n";
-	cout << "| 2 | ƒÓÍÛÏÂÌÚË ·ÂÁ Ô≥‰ÔËÒÛ                       |\n";
-	cout << "| 3 | ƒÓÍÛÏÂÌÚË Á ÌÂ‰≥ÈÒÌËÏ ÙÓÏ‡ÚÓÏ              |\n";
-	cout << "| 4 | ”Ò≥ ‰ÓÍÛÏÂÌÚË Á ·Û‰¸-ˇÍËÏË ÔÓÏËÎÍ‡ÏË        |\n";
-	cout << "| 0 | œÓ‚ÂÌÛÚËÒ¸ ‰Ó „ÓÎÓ‚ÌÓ„Ó ÏÂÌ˛               |\n";
-	cout << "+-------------------------------------------------+\n";
-}
-
 
 void showMenu() {
 	cout << "+-------------------------------------------------+" << endl;
-	cout << "|        ÃÂÌ˛ ÒËÒÚÂÏË ÔÂÂ‚≥ÍË ‰ÓÍÛÏÂÌÚ≥‚        |" << endl;
+	cout << "|        –ú–µ–Ω—é —Å–∏—Å—Ç–µ–º–∏ –ø–µ—Ä–µ–≤—ñ—Ä–∫–∏ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤        |" << endl;
 	cout << "+-------------------------------------------------+" << endl;
-	cout << "| 1 |  ƒÓ‰‡ÚË ‰ÓÍÛÏÂÌÚ ‚Û˜ÌÛ                     |" << endl;
-	cout << "| 2 |  –Â‰‡„Û‚‡ÚË ‰ÓÍÛÏÂÌÚ Á‡ ID                  |" << endl;
-	cout << "| 3 |  œÂÂ‚≥ËÚË ‚Ò≥ ‰ÓÍÛÏÂÌÚË                   |" << endl;
-	cout << "| 4 |  Œ˜ËÒÚËÚË ‚Ò≥ ‰ÓÍÛÏÂÌÚË                     |" << endl;
-	cout << "| 5 |  œÓ¯ÛÍ ‰ÓÍÛÏÂÌÚ≥‚ Á ÔÓÏËÎÍÓ˛                |" << endl;
-	cout << "| 6 |  œÂÂ„ÎˇÌÛÚË ‚Ò≥ ‰ÓÍÛÏÂÌÚË                  |" << endl;
-	cout << "| 7 |  «·ÂÂ„ÚË ‰ÓÍÛÏÂÌÚË Û Ù‡ÈÎ                  |" << endl;
-	cout << "| 8 |  ¬Ë‰‡ÎËÚË ‰ÓÍÛÏÂÌÚ Á‡ ID                    |" << endl;
-	cout << "| 9 |  «‡‚‡ÌÚ‡ÊËÚË ‰ÓÍÛÏÂÌÚË Á Ù‡ÈÎÛ              |" << endl;
-	cout << "| 0 |  ¬ËÈÚË                                      |" << endl;
+	cout << "| 1 |  –î–æ–¥–∞—Ç–∏ –¥–æ–∫—É–º–µ–Ω—Ç –≤—Ä—É—á–Ω—É                     |" << endl;
+	cout << "| 2 |  –†–µ–¥–∞–≥—É–≤–∞—Ç–∏ –¥–æ–∫—É–º–µ–Ω—Ç –∑–∞ ID                  |" << endl;
+	cout << "| 3 |  –ü–µ—Ä–µ–≤—ñ—Ä–∏—Ç–∏ –≤—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏                   |" << endl;
+	cout << "| 4 |  –û—á–∏—Å—Ç–∏—Ç–∏ –≤—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏                     |" << endl;
+	cout << "| 5 |  –ü–æ—à—É–∫ –¥–æ–∫—É–º–µ–Ω—Ç—ñ–≤ –∑ –ø–æ–º–∏–ª–∫–æ—é                |" << endl;
+	cout << "| 6 |  –ü–µ—Ä–µ–≥–ª—è–Ω—É—Ç–∏ –≤—Å—ñ –¥–æ–∫—É–º–µ–Ω—Ç–∏                  |" << endl;
+	cout << "| 7 |  –ó–±–µ—Ä–µ–≥—Ç–∏ –¥–æ–∫—É–º–µ–Ω—Ç–∏ —É —Ñ–∞–π–ª                  |" << endl;
+	cout << "| 8 |  –í–∏–¥–∞–ª–∏—Ç–∏ –¥–æ–∫—É–º–µ–Ω—Ç –∑–∞ ID                    |" << endl;
+	cout << "| 9 |  –ó–∞–≤–∞–Ω—Ç–∞–∂–∏—Ç–∏ –¥–æ–∫—É–º–µ–Ω—Ç–∏ –∑ —Ñ–∞–π–ª—É              |" << endl;
+	cout << "| 0 |  –í–∏–π—Ç–∏                                      |" << endl;
 	cout << "+-------------------------------------------------+" << endl;
 }
 
@@ -492,17 +535,17 @@ int getValidatedMenuChoice(const string& prompt, int minOption, int maxOption) {
 				return choice;
 			}
 			else {
-				cout << "ÕÂÔ‡‚ËÎ¸ÌËÈ ÔÛÌÍÚ ÏÂÌ˛. ¬Ë·≥ Ï‡∫ ·ÛÚË Ï≥Ê " << minOption << " ≥ " << maxOption << ".\n";
+				cout << "–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω–∏–π –ø—É–Ω–∫—Ç –º–µ–Ω—é. –í–∏–±—ñ—Ä –º–∞—î –±—É—Ç–∏ –º—ñ–∂ " << minOption << " —ñ " << maxOption << ".\n";
 			}
 		}
 		catch (...) {
-			cout << "ÕÂÍÓÂÍÚÌËÈ ÔÛÌÍÚ ÏÂÌ˛. —ÔÓ·ÛÈÚÂ ˘Â ‡Á.\n";
+			cout << "–ù–µ–∫–æ—Ä–µ–∫—Ç–Ω–∏–π –ø—É–Ω–∫—Ç –º–µ–Ω—é. –°–ø—Ä–æ–±—É–π—Ç–µ —â–µ —Ä–∞–∑.\n";
 		}
 	}
 }
 
-
 int main() {
+	DocumentStorage DocSystem;
 	auto formatValidator = make_shared<FormatValidator>();
 	auto contentValidator = make_shared<ContentValidator>();
 	auto signatureValidator = make_shared<SignatureValidator>();
@@ -512,41 +555,41 @@ int main() {
 	showMenu();
 	int choice;
 	do {
-		choice = getValidatedMenuChoice("Œ·Â≥Ú¸ ÓÔˆ≥˛: ", 0, 9);
+		choice = getValidatedMenuChoice("–û–±–µ—Ä—ñ—Ç—å –æ–ø—Ü—ñ—é: ", 0, 9);
 
 		switch (choice) {
 		case 1:
 			system("cls");
 			showMenu();
-			addDocumentManually();
+			DocSystem.addDocumentManually();
 			break;
 		case 2:
 			system("cls");
 			showMenu();
-			editDocumentById();
+			DocSystem.editDocumentById();
 			break;
 		case 3:
 			system("cls");
 			showMenu();
-			verifyAllDocuments();
+			DocSystem.verifyAllDocuments();
 			break;
 		case 4:
 			system("cls");
 			showMenu();
-			clearAllDocuments();
+			DocSystem.clearAllDocuments();
 			break;
 		case 5: {
 			int errorOption;
-			showErrorFilterMenu();
+			DocSystem.showErrorFilterMenu();
 			do {
 
-				errorOption = getValidatedMenuChoice("¬‡¯ ‚Ë·≥: ", 0, 4);
+				errorOption = getValidatedMenuChoice("–í–∞—à –≤–∏–±—ñ—Ä: ", 0, 4);
 
 				if (errorOption >= 1 && errorOption <= 4) {
 					system("cls");
 					showMenu();
-					showErrorFilterMenu();
-					handleErrorSearch(errorOption);
+					DocSystem.showErrorFilterMenu();
+					DocSystem.handleErrorSearch(errorOption);
 
 				}
 			} while (errorOption != 0);
@@ -557,33 +600,33 @@ int main() {
 		case 6:
 			system("cls");
 			showMenu();
-			printAllDocuments();
+			DocSystem.printAllDocuments();
 			break;
 		case 7:
 			system("cls");
 			showMenu();
-			saveDocumentsToFile();
-			cout << "ƒÓÍÛÏÂÌÚË Á·ÂÂÊÂÌÓ!" << endl;
+			DocSystem.saveDocumentsToFile();
+			cout << "–î–æ–∫—É–º–µ–Ω—Ç–∏ –∑–±–µ—Ä–µ–∂–µ–Ω–æ!" << endl;
 			break;
 		case 8: {
 			system("cls");
 			showMenu();
 			int delId;
-			while (!getValidatedInt("¬‚Â‰≥Ú¸ ID ‰ÓÍÛÏÂÌÚ‡ ‰Îˇ ‚Ë‰‡ÎÂÌÌˇ: ", delId, 1)) {}
-			deleteDocumentById(delId);
+			while (!getValidatedInt("–í–≤–µ–¥—ñ—Ç—å ID –¥–æ–∫—É–º–µ–Ω—Ç–∞ –¥–ª—è –≤–∏–¥–∞–ª–µ–Ω–Ω—è: ", delId, 1)) {}
+			DocSystem.deleteDocumentById(delId);
 			break;
 		}
 		case 9:
 			system("cls");
 			showMenu();
-			loadDocumentsFromFile();
-			cout << "ƒÓÍÛÏÂÌÚË Á‡‚‡ÌÚ‡ÊÂÌÓ!" << endl;
+			DocSystem.loadDocumentsFromFile();
+			cout << "–î–æ–∫—É–º–µ–Ω—Ç–∏ –∑–∞–≤–∞–Ω—Ç–∞–∂–µ–Ω–æ!" << endl;
 			break;
 		case 0:
-			cout << "¬Ëı≥‰ Á ÔÓ„‡ÏË...\n";
+			cout << "–í–∏—Ö—ñ–¥ –∑ –ø—Ä–æ–≥—Ä–∞–º–∏...\n";
 			break;
 		default:
-			cout << "ÕÂ‚≥ÌËÈ ‚Ë·≥! —ÔÓ·ÛÈÚÂ ˘Â ‡Á.\n";
+			cout << "–ù–µ–≤—ñ—Ä–Ω–∏–π –≤–∏–±—ñ—Ä! –°–ø—Ä–æ–±—É–π—Ç–µ —â–µ —Ä–∞–∑.\n";
 		}
 
 
@@ -591,5 +634,6 @@ int main() {
 
 	return 0;
 }
+
 
 
