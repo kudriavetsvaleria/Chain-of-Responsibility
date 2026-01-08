@@ -1,80 +1,50 @@
-ID: 1
-Content: тестове додавання 
-документа у 
-декілька рядків
-
-Signed: Yes
-Format: pdf
----
-
 ID: 2
 Content: звіт за перший квартал 
-по фінансовій діяльності 
-компанії
-
 Signed: No
 Format: docx
 ---
-
 ID: 3
 Content: договір на поставку 
-обладнання до кінця року
-
 Signed: Yes
 Format: pdf
 ---
-
 ID: 4
 Content: опис API для зовнішньої 
-інтеграції з CRM-системою
-
 Signed: No
 Format: txt
 ---
-
 ID: 5
 Content: протокол загальних 
-зборів акціонерів компанії
-
 Signed: Yes
 Format: pdf
 ---
-
 ID: 6
 Content: план маркетингової 
-кампанії на третій квартал
-
 Signed: No
 Format: docx
 ---
-
 ID: 7
 Content: наказ про відпустку 
-співробітника на серпень
-
 Signed: Yes
 Format: pdf
 ---
-
 ID: 8
 Content: презентація про нові 
-послуги компанії
-
 Signed: No
 Format: pptx
 ---
-
 ID: 9
 Content: технічне завдання на 
-розробку мобільного додатку
-
 Signed: Yes
 Format: pdf
 ---
-
 ID: 10
 Content: внутрішнє розпорядження 
-щодо оновлення політик безпеки
+Signed: No
+Format: txt
+---
+ID: 11
+Content: Звіт по продажам
 
 Signed: No
 Format: txt
